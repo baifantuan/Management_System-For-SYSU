@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itbaifantuan.mapper.StudentMapper">
+    <insert id="insert">
+        insert into student
+        (name, no, gender, phone, id_card, is_college, address, degree, graduation_date, clazz_id, create_time, update_time)
+        values
+        (#{name}, #{no},#{gender},#{phone},#{idCard},#{isCollege},#{address},#{degree},#{graduationDate},#{clazzId},#{createTime},#{updateTime});
+    </insert>
+
+    <update id="update">
+        update student set
+            name = #{name},
+            no = #{no},
+            gender = #{gender},
+            phone = #{phone},
+            id_card = #{idCard},
+            is_college = #{isCollege},
+            address = #{address},
+            degree = #{degree},
+            graduation_date = #{graduationDate},
+            clazz_id = #{clazzId},
+            violation_count = #{violationCount},
+            violation_score = #{violationScore},
+            update_time = #{updateTime}
+        where id = #{id}
+    </update>
+
+    <!--    第一次写这个delete语句在分隔的时候出了问题，需要记住，在xml语句forEach时，要分隔就用separator=","-->
+    <delete id="deleteByIds">
+        delete from student where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="page" resultType="com.itbaifantuan.pojo.Student">
+        select s.*, c.name clazzName from student s, clazz c
+        <where>
+            <if test="name != null and name != ''">
+                s.name = #{name}
+            </if>
+            <if test="degree != null">
+                and s.degree = #{degree}
+            </if>
+            <if test="clazzId != null">
+                and s.clazz_id = #{clazzId}
+            </if>
+            and s.clazz_id = c.id
+        </where>
+        order by s.update_time desc
+    </select>
+
+    <select id="getById" resultType="com.itbaifantuan.pojo.Student">
+        select * from student where id = #{id}
+    </select>
+
+<!--    注意这个地方，这是第一次使用除了COUNT(*)外的COUNT函数，要记住COUNT(*) 数的是“行”的数量，而 COUNT(列名) 数的是某一列“非空值”的数量-->
+<!--    在这里，没有学生的班级，其学生的id数量为0，故可以使用COUNT(s.id)来统计每个班级的学生人数-->
+    <select id="StudentClazzData" resultType="java.util.Map">
+        select c.name clazz , count(s.id) num
+            from clazz c left join student s on s.clazz_id = c.id
+        group by c.name
+        order by num desc;
+    </select>
+
+    <select id="getStudentDegreeData" resultType="com.itbaifantuan.pojo.DegreeOption">
+        select
+            (case when degree=1 then '初中'
+                  when degree=2 then '高中'
+                  when degree=3 then '大专'
+                  when degree=4 then '本科'
+                  when degree=5 then '硕士'
+                  when degree=6 then '博士'
+                  else '其他' end) name
+             ,count(*) value from student
+        group by degree;
+    </select>
+
+</mapper>
